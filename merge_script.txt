@@ -1,0 +1,34 @@
+def get_non_normalized_format(df_list,col_name):
+    filtered_df_list=[]
+    for i in df_list:
+        for j in i.columns:
+            if(j==col_name):
+                filtered_df_list.append(i)
+                break
+    count=0
+    result=filtered_df_list[0]
+    for i in filtered_df_list[1:]:
+        if(count==0):
+            result_intermediate=pd.merge(result,i,left_on=["Source Column Name","Source Table"],right_on=['Column Name','Object Name'],how="inner")
+            rename_dict_first_join={"Object Name_x":"Target Table","Source Table_y":"Source Table","Source Table Column":"Source Column Name"}
+            result_intermediate=result_intermediate.drop(columns=['Source Column Name',"Source Table_x","Object Name_y","Column Name"])
+            result_intermediate=result_intermediate.rename(columns=rename_dict_first_join)
+            result_intermediate["Source Table"]=result_intermediate["Source Table"].apply(lambda x:x.split(".")[1])
+            count+=1
+        else:
+            result_df=pd.merge(result_intermediate,i,left_on=["Source Column Name","Source Table"],right_on=['Column Name','Object Name'],how="inner")
+            merge_columns=["Actual Condition Applied","Description of Condition"]
+            for j in merge_columns:
+                condition_columns = [col for col in result_df.columns if col.startswith(j)]
+                result_df[j]=result_df[condition_columns].apply(lambda x: ",".join([str(k) for k in x.values]),axis=1)
+                result_df.drop(columns=condition_columns, inplace=True)
+            rename_dict_second_join={"Source Table_y":"Source Table","Source Table Column":"Source Column Name"}
+            result_df=result_df.drop(columns=["Source Table_x","Source Column Name_x","Object Name","Column Name"])
+            result_df=result_df.rename(columns=rename_dict_second_join)
+            count+=1
+
+    if(count==1):
+        print("Hello")
+        return result_intermediate
+    else:
+        return result_df
